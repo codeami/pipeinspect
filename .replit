@@ -1,0 +1,33 @@
+modules = ["python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Run Pipe Measurement"
+
+[[workflows.workflow]]
+name = "Run Pipe Measurement"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python pipe_measure.py sample.jpg --marker-length 1.0"
+
+[deployment]
+run = ["sh", "-c", "python pipe_measure.py sample.jpg --marker-length 1.0"]
