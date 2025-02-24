@@ -105,19 +105,19 @@ class PipeImageProcessor:
 
     def _create_red_mask(self, hsv_image: np.ndarray) -> np.ndarray:
         """Create a binary mask for red objects with improved thresholding"""
-        mask = np.zeros(hsv_image.shape[:2], dtype=np.uint8)
+        self.mask = np.zeros(hsv_image.shape[:2], dtype=np.uint8)
         for (lower, upper) in self.red_ranges:
             range_mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
-            mask = cv2.bitwise_or(mask, range_mask)
+            self.mask = cv2.bitwise_or(self.mask, range_mask)
 
         # Enhanced morphological operations
         kernel = np.ones((5,5), np.uint8)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        self.mask = cv2.morphologyEx(self.mask, cv2.MORPH_OPEN, kernel)
+        self.mask = cv2.morphologyEx(self.mask, cv2.MORPH_CLOSE, kernel)
 
         # Additional noise removal
-        mask = cv2.medianBlur(mask, 5)
-        return mask
+        self.mask = cv2.medianBlur(self.mask, 5)
+        return self.mask
 
     def _find_marker(self, contours: List[np.ndarray]) -> np.ndarray:
         """Find the reference marker using improved shape analysis"""
@@ -127,28 +127,35 @@ class PipeImageProcessor:
             perimeter = cv2.arcLength(contour, True)
             area = cv2.contourArea(contour)
 
-            if area < 100:  # Skip tiny contours
+            if area < 50:  # Lower minimum area threshold
                 continue
 
             # Approximate the contour
-            epsilon = 0.02 * perimeter
+            epsilon = 0.04 * perimeter  # More tolerant approximation
             approx = cv2.approxPolyDP(contour, epsilon, True)
 
-            # Check if it's roughly rectangular (4 corners)
-            if len(approx) == 4:
+            # Check if it's roughly rectangular (3-6 corners to be more lenient)
+            if 3 <= len(approx) <= 6:
                 # Calculate aspect ratio and extent
                 x, y, w, h = cv2.boundingRect(contour)
                 aspect_ratio = float(w)/h
                 rect_area = w * h
                 extent = float(area)/rect_area
 
-                # Check if it's roughly square and filled
-                if 0.7 <= aspect_ratio <= 1.3 and extent > 0.6:  # More lenient criteria
+                # Much more lenient criteria
+                if 0.5 <= aspect_ratio <= 1.5 and extent > 0.4:
                     marker_candidates.append(contour)
 
-        # Return the smallest valid marker candidate
+        # Save debug image
+        debug_img = cv2.cvtColor(self.mask.copy(), cv2.COLOR_GRAY2BGR)
+        cv2.drawContours(debug_img, marker_candidates, -1, (0, 255, 0), 2)
+        cv2.imwrite('static/debug_markers.jpg', debug_img)
+
+        # Return the marker candidate closest to expected size
         if marker_candidates:
-            return min(marker_candidates, key=cv2.contourArea)
+            # Sort by area to find moderate-sized marker
+            sorted_candidates = sorted(marker_candidates, key=cv2.contourArea)
+            return sorted_candidates[len(sorted_candidates)//2]  # Pick middle-sized candidate
         return None
 
     def _calculate_scale(self, marker_contour: np.ndarray) -> float:
