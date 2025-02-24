@@ -44,7 +44,7 @@ def display_results(image: np.ndarray, results: Dict) -> str:
             # Draw width line (blue)
             rect = cv2.minAreaRect(contour)
             box = cv2.boxPoints(rect)
-            box = np.int0(box)
+            box = np.int32(box)
             width_p1 = tuple(box[0])
             width_p2 = tuple(box[1])
             cv2.line(output, width_p1, width_p2, (255, 0, 0), 3)  # Blue line
