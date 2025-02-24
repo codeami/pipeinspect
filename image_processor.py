@@ -74,13 +74,13 @@ class PipeImageProcessor:
         # Find the minimum area rectangle that bounds the pipe
         rect = cv2.minAreaRect(contour)
         box = cv2.boxPoints(rect)
-        box = np.int0(box)
-        
+        box = np.array(box, dtype=np.int32)  # Changed from np.int0 to np.int32
+
         # Get the length of the pipe (longest side of the rectangle)
         width = rect[1][0]
         height = rect[1][1]
         length_pixels = max(width, height)
-        
+
         # Convert to meters
         length_meters = length_pixels / pixels_per_meter
         return round(length_meters, 2)

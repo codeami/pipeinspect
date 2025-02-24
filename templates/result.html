@@ -4,15 +4,36 @@
     <title>Measurement Results</title>
     <style>
         body { font-family: Arial, sans-serif; margin: 40px; }
-        .container { max-width: 1000px; margin: 0 auto; }
-        .result-image { max-width: 100%; height: auto; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .image-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .image-box {
+            flex: 1;
+            margin: 0 10px;
+        }
+        .image-box img {
+            max-width: 100%;
+            height: auto;
+        }
         .back-link { margin-top: 20px; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Measurement Results</h1>
-        <img src="/{{ image_path }}" alt="Processed Image" class="result-image">
+        <div class="image-container">
+            <div class="image-box">
+                <h3>Original Image</h3>
+                <img src="/{{ input_path }}" alt="Original Image">
+            </div>
+            <div class="image-box">
+                <h3>Processed Image with Measurements</h3>
+                <img src="/{{ image_path }}" alt="Processed Image">
+            </div>
+        </div>
         <div class="back-link">
             <a href="/">Process Another Image</a>
         </div>
