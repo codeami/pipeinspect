@@ -60,7 +60,7 @@ def process_image():
         return 'No selected file', 400
 
     try:
-        # Convert uploaded file to numpy array
+        # Convert uploaded file to numpy array - using same method as test_marker
         file_bytes = np.frombuffer(file.read(), np.uint8)
         image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
 
