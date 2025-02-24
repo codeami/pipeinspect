@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_from_directory
+from flask import Flask, render_template, request, send_from_directory, jsonify
 import cv2
 from image_processor import PipeImageProcessor
 from utils import display_results
@@ -14,6 +14,41 @@ if not os.path.exists('static'):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.route('/test-marker', methods=['POST'])
+def test_marker():
+    if 'image' not in request.files:
+        return jsonify({'success': False, 'message': 'No image uploaded'})
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'success': False, 'message': 'No selected file'})
+
+    try:
+        # Convert uploaded file to numpy array
+        file_bytes = np.frombuffer(file.read(), np.uint8)
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+
+        if image is None:
+            return jsonify({'success': False, 'message': 'Invalid image format'})
+
+        # Try to find marker
+        processor = PipeImageProcessor(marker_length=1.0)
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+        mask = processor._create_red_mask(hsv)
+        contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        if not contours:
+            return jsonify({'success': False, 'message': 'No red objects detected in the image'})
+
+        marker = processor._find_marker(contours)
+        if marker is None:
+            return jsonify({'success': False, 'message': 'Reference marker not found. Please ensure the marker is clearly visible.'})
+
+        return jsonify({'success': True, 'message': 'Reference marker detected successfully!'})
+
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error processing image: {str(e)}'})
 
 @app.route('/process', methods=['POST'])
 def process_image():

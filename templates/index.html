@@ -34,6 +34,30 @@
             border-radius: 4px;
             margin: 10px 0;
         }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .message {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -71,12 +95,83 @@
             </div>
         </div>
 
-        <form action="/process" method="post" enctype="multipart/form-data" class="upload-form">
+        <form id="uploadForm" class="upload-form">
             <p>Upload a construction site image with red pipes and the reference marker:</p>
-            <input type="file" name="image" accept="image/*" required>
+            <input type="file" name="image" accept="image/*" required id="imageInput">
             <br><br>
-            <input type="submit" value="Process Image">
+            <div class="button-group">
+                <button type="button" onclick="testMarker()">Test Marker</button>
+                <button type="button" onclick="processImage()">Process Image</button>
+            </div>
+            <div id="loading" class="loading">Processing...</div>
+            <div id="message"></div>
         </form>
     </div>
+
+    <script>
+        function showMessage(text, isSuccess) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.className = `message ${isSuccess ? 'success' : 'error'}`;
+            messageDiv.textContent = text;
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').style.display = show ? 'block' : 'none';
+        }
+
+        async function testMarker() {
+            const fileInput = document.getElementById('imageInput');
+            if (!fileInput.files.length) {
+                showMessage('Please select an image first', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            showLoading(true);
+            try {
+                const response = await fetch('/test-marker', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                showMessage(result.message, result.success);
+            } catch (error) {
+                showMessage('Error testing marker: ' + error, false);
+            }
+            showLoading(false);
+        }
+
+        async function processImage() {
+            const fileInput = document.getElementById('imageInput');
+            if (!fileInput.files.length) {
+                showMessage('Please select an image first', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('image', fileInput.files[0]);
+
+            showLoading(true);
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    // If successful, the response will be HTML, so we'll replace the page content
+                    document.documentElement.innerHTML = await response.text();
+                } else {
+                    const error = await response.text();
+                    showMessage(error, false);
+                }
+            } catch (error) {
+                showMessage('Error processing image: ' + error, false);
+            }
+            showLoading(false);
+        }
+    </script>
 </body>
 </html>
