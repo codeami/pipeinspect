@@ -25,7 +25,7 @@ def display_results(image: np.ndarray, results: Dict) -> str:
     }
 
     # Draw pipe measurements
-    for pipe in results['pipe_measurements']:
+    for i, pipe in enumerate(results['pipe_measurements']):
         contour = pipe['contour']
         length = pipe['length_m']
         width = pipe['width_mm']
