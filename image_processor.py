@@ -7,8 +7,8 @@ class PipeImageProcessor:
         self.marker_length = marker_length
         # HSV range for red color (considering both ranges around hue=0 and hue=180)
         self.red_ranges = [
-            ((0, 50, 50), (10, 255, 255)),
-            ((170, 50, 50), (180, 255, 255))
+            ((0, 30, 30), (15, 255, 255)),  # Broader lower red range
+            ((160, 30, 30), (180, 255, 255))  # Broader upper red range
         ]
         # Width categories in millimeters
         self.width_categories = {
@@ -143,7 +143,7 @@ class PipeImageProcessor:
                 extent = float(area)/rect_area
 
                 # Check if it's roughly square and filled
-                if 0.8 <= aspect_ratio <= 1.2 and extent > 0.8:
+                if 0.7 <= aspect_ratio <= 1.3 and extent > 0.6:  # More lenient criteria
                     marker_candidates.append(contour)
 
         # Return the smallest valid marker candidate
