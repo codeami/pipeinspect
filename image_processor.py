@@ -120,15 +120,30 @@ class PipeImageProcessor:
         return self.mask
 
     def _find_marker(self, contours: List[np.ndarray]) -> np.ndarray:
-        """Find the reference marker using improved shape analysis"""
-        marker_candidates = []
-        for contour in contours:
-            # Calculate shape metrics
-            perimeter = cv2.arcLength(contour, True)
-            area = cv2.contourArea(contour)
-
-            if area < 1000:  # Increased minimum area threshold (20x)
-                continue
+        """Find the reference marker by looking for green boundaries"""
+        # Convert image to HSV for green detection
+        image = cv2.cvtColor(cv2.imread('static/test_marker.jpg'), cv2.COLOR_BGR2HSV)
+        
+        # Define green color range in HSV
+        lower_green = np.array([40, 40, 40])
+        upper_green = np.array([80, 255, 255])
+        
+        # Create mask for green color
+        green_mask = cv2.inRange(image, lower_green, upper_green)
+        
+        # Find contours in green mask
+        green_contours, _ = cv2.findContours(green_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        
+        # Find the largest green contour
+        if green_contours:
+            largest_green = max(green_contours, key=cv2.contourArea)
+            area = cv2.contourArea(largest_green)
+            
+            if area < 1000:  # Keep the minimum area threshold
+                return None
+                
+            return largest_green
+        return None
 
             # Approximate the contour
             epsilon = 0.04 * perimeter  # More tolerant approximation

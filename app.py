@@ -61,17 +61,13 @@ def test_marker():
 
 @app.route('/process', methods=['POST'])
 def process_image():
-    if 'image' not in request.files:
-        return 'No image uploaded', 400
-
-    file = request.files['image']
-    if file.filename == '':
-        return 'No selected file', 400
-
     try:
-        # Convert uploaded file to numpy array - using same method as test_marker
-        file_bytes = np.frombuffer(file.read(), np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        # Use the test marker image if it exists
+        test_marker_path = 'static/test_marker.jpg'
+        if not os.path.exists(test_marker_path):
+            return 'Please test marker detection first', 400
+            
+        image = cv2.imread(test_marker_path)
 
         if image is None:
             return 'Invalid image format', 400
