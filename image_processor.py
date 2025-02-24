@@ -145,33 +145,7 @@ class PipeImageProcessor:
             return largest_green
         return None
 
-            # Approximate the contour
-            epsilon = 0.04 * perimeter  # More tolerant approximation
-            approx = cv2.approxPolyDP(contour, epsilon, True)
-
-            # Check if it's roughly rectangular (3-6 corners to be more lenient)
-            if 3 <= len(approx) <= 6:
-                # Calculate aspect ratio and extent
-                x, y, w, h = cv2.boundingRect(contour)
-                aspect_ratio = float(w)/h
-                rect_area = w * h
-                extent = float(area)/rect_area
-
-                # Much more lenient criteria
-                if 0.5 <= aspect_ratio <= 1.5 and extent > 0.4:
-                    marker_candidates.append(contour)
-
-        # Save debug image
-        debug_img = cv2.cvtColor(self.mask.copy(), cv2.COLOR_GRAY2BGR)
-        cv2.drawContours(debug_img, marker_candidates, -1, (0, 255, 0), 2)
-        cv2.imwrite('static/debug_markers.jpg', debug_img)
-
-        # Return the marker candidate closest to expected size
-        if marker_candidates:
-            # Sort by area to find moderate-sized marker
-            sorted_candidates = sorted(marker_candidates, key=cv2.contourArea)
-            return sorted_candidates[len(sorted_candidates)//2]  # Pick middle-sized candidate
-        return None
+            
 
     def _calculate_scale(self, marker_contour: np.ndarray) -> float:
         """Calculate pixels per marker length using improved method"""
