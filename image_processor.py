@@ -127,7 +127,7 @@ class PipeImageProcessor:
             perimeter = cv2.arcLength(contour, True)
             area = cv2.contourArea(contour)
 
-            if area < 50:  # Lower minimum area threshold
+            if area < 250:  # Increased minimum area threshold (5x)
                 continue
 
             # Approximate the contour
