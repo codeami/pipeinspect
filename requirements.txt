@@ -1,0 +1,9 @@
+
+flask==3.1.0
+flask-login==0.6.3
+flask-wtf==1.2.2
+numpy==2.2.3
+opencv-python==4.11.0.86
+anthropic==0.46.0
+openai==1.64.0
+trafilatura==2.0.0
