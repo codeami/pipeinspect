@@ -3,7 +3,7 @@ import numpy as np
 from typing import Dict, List, Tuple
 
 class PipeImageProcessor:
-    def __init__(self, marker_length: float):
+    def __init__(self, marker_length: float = 0.05):  # 50mm = 0.05m
         self.marker_length = marker_length
         # HSV range for red color (considering both ranges around hue=0 and hue=180)
         self.red_ranges = [
