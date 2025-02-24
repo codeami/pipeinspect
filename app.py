@@ -41,9 +41,27 @@ def process_image():
         results = processor.process_image(image)
         output_path = display_results(image, results)
 
+        # Prepare measurement data for tooltips
+        measurements = []
+        for pipe in results['pipe_measurements']:
+            # Calculate centroid for tooltip positioning
+            M = cv2.moments(pipe['contour'])
+            if M['m00'] != 0:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+
+                measurements.append({
+                    'width_mm': pipe['width_mm'],
+                    'length_m': pipe['length_m'],
+                    'category': pipe['category'],
+                    'shape_complexity': pipe['shape_complexity'],
+                    'center': {'x': cx, 'y': cy}
+                })
+
         return render_template('result.html', 
                              image_path=output_path,
-                             input_path=input_path)
+                             input_path=input_path,
+                             measurements=measurements)
     except Exception as e:
         print(f"Error processing image: {str(e)}")
         return f'Error processing image: {str(e)}', 400

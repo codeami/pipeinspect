@@ -13,12 +13,42 @@
         .image-box {
             flex: 1;
             margin: 0 10px;
+            position: relative;
         }
         .image-box img {
             max-width: 100%;
             height: auto;
         }
         .back-link { margin-top: 20px; }
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            pointer-events: none;
+            display: none;
+            z-index: 100;
+        }
+        /* Categories legend */
+        .legend {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 5px 0;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+        }
     </style>
 </head>
 <body>
@@ -29,14 +59,88 @@
                 <h3>Original Image</h3>
                 <img src="/{{ input_path }}" alt="Original Image">
             </div>
-            <div class="image-box">
+            <div class="image-box" id="processed-image-container">
                 <h3>Processed Image with Measurements</h3>
-                <img src="/{{ image_path }}" alt="Processed Image">
+                <img src="/{{ image_path }}" alt="Processed Image" id="processed-image">
+                <div class="tooltip" id="measurement-tooltip"></div>
+            </div>
+        </div>
+        <div class="legend">
+            <h4>Pipe Categories</h4>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgb(0, 255, 255)"></div>
+                <span>Small (25-50mm)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgb(0, 165, 255)"></div>
+                <span>Medium (51-75mm)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: rgb(0, 0, 255)"></div>
+                <span>Large (76-100mm)</span>
             </div>
         </div>
         <div class="back-link">
             <a href="/">Process Another Image</a>
         </div>
     </div>
+
+    <script>
+        // Pipe measurement data passed from Flask
+        const pipeMeasurements = {{ measurements|tojson|safe }};
+
+        const tooltip = document.getElementById('measurement-tooltip');
+        const container = document.getElementById('processed-image-container');
+        const image = document.getElementById('processed-image');
+
+        // Show tooltip on mousemove
+        container.addEventListener('mousemove', (e) => {
+            const rect = image.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            // Scale coordinates to match original image dimensions
+            const scaleX = image.naturalWidth / image.width;
+            const scaleY = image.naturalHeight / image.height;
+            const imgX = x * scaleX;
+            const imgY = y * scaleY;
+
+            // Find pipe measurement for current position
+            const measurement = findNearestPipe(imgX, imgY, pipeMeasurements);
+
+            if (measurement) {
+                tooltip.style.display = 'block';
+                tooltip.style.left = `${e.clientX - rect.left + 10}px`;
+                tooltip.style.top = `${e.clientY - rect.top - 10}px`;
+                tooltip.innerHTML = `
+                    Width: ${measurement.width_mm}mm<br>
+                    Length: ${measurement.length_m}m<br>
+                    Category: ${measurement.category}<br>
+                    Shape Complexity: ${measurement.shape_complexity}
+                `;
+            } else {
+                tooltip.style.display = 'none';
+            }
+        });
+
+        // Hide tooltip when mouse leaves the image
+        container.addEventListener('mouseleave', () => {
+            tooltip.style.display = 'none';
+        });
+
+        // Helper function to find the nearest pipe to the cursor
+        function findNearestPipe(x, y, measurements) {
+            for (const measurement of measurements) {
+                const center = measurement.center;
+                const distance = Math.sqrt(
+                    Math.pow(x - center.x, 2) + Math.pow(y - center.y, 2)
+                );
+                if (distance < 50) { // 50px threshold for hover detection
+                    return measurement;
+                }
+            }
+            return null;
+        }
+    </script>
 </body>
 </html>
