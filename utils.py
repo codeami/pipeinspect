@@ -8,8 +8,13 @@ def display_results(image: np.ndarray, results: Dict) -> str:
     # Create a copy of the image for drawing
     output = image.copy()
 
-    # Draw marker contour
-    cv2.drawContours(output, [results['marker_contour']], -1, (0, 255, 0), 2)
+    # Draw marker contour with label
+    marker_contour = results['marker_contour']
+    cv2.drawContours(output, [marker_contour], -1, (0, 255, 0), 2)
+    # Add marker label
+    x, y, w, h = cv2.boundingRect(marker_contour)
+    cv2.putText(output, "Reference Marker", (x, y-10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     # Colors for different categories
     category_colors = {
@@ -40,6 +45,14 @@ def display_results(image: np.ndarray, results: Dict) -> str:
             text = f"{length}m ({width}mm)"
             cv2.putText(output, text, (cx-30, cy), 
                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+
+    # Add legend
+    legend_y = 30
+    cv2.putText(output, "Pipe Categories:", (10, legend_y),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    for i, (category, color) in enumerate(category_colors.items(), 1):
+        cv2.putText(output, f"- {category.title()}", (20, legend_y + i*20),
+                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
     # Print results grouped by category
     print("\nPipe Measurements by Category:")

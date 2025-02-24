@@ -27,12 +27,36 @@ class PipeImageProcessor:
         # Create mask for red objects
         mask = self._create_red_mask(hsv)
 
-        # Find contours
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # Find contours with hierarchy
+        contours, hierarchy = cv2.findContours(
+            mask, 
+            cv2.RETR_TREE,  # Changed to TREE to get hierarchy information
+            cv2.CHAIN_APPROX_SIMPLE
+        )
 
-        # Find marker (assuming the smallest red object is the reference marker)
-        marker_contour = min(contours, key=cv2.contourArea) if contours else None
+        if not contours:
+            raise ValueError("No red objects detected in the image")
 
+        # Filter contours by area and shape
+        filtered_contours = []
+        for i, contour in enumerate(contours):
+            # Skip small noise contours
+            if cv2.contourArea(contour) < 100:
+                continue
+
+            # Approximate contour shape
+            epsilon = 0.02 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+
+            # Filter based on shape complexity
+            if len(approx) > 4 and len(approx) < 15:  # Complex enough to be a pipe
+                filtered_contours.append(contour)
+
+        if not filtered_contours:
+            raise ValueError("No valid pipe contours detected")
+
+        # Find marker (now using contour properties for better detection)
+        marker_contour = self._find_marker(filtered_contours)
         if marker_contour is None:
             raise ValueError("No reference marker found in the image")
 
@@ -41,8 +65,8 @@ class PipeImageProcessor:
 
         # Process pipe contours
         pipe_measurements = []
-        for contour in contours:
-            if contour is marker_contour:
+        for contour in filtered_contours:
+            if np.array_equal(contour, marker_contour):
                 continue
 
             width, length = self._measure_pipe(contour, pixels_per_mm)
@@ -65,26 +89,53 @@ class PipeImageProcessor:
         }
 
     def _create_red_mask(self, hsv_image: np.ndarray) -> np.ndarray:
-        """Create a binary mask for red objects"""
+        """Create a binary mask for red objects with improved thresholding"""
         mask = np.zeros(hsv_image.shape[:2], dtype=np.uint8)
         for (lower, upper) in self.red_ranges:
             range_mask = cv2.inRange(hsv_image, np.array(lower), np.array(upper))
             mask = cv2.bitwise_or(mask, range_mask)
 
-        # Apply morphological operations to clean up the mask
+        # Enhanced morphological operations
         kernel = np.ones((5,5), np.uint8)
         mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+        # Additional noise removal
+        mask = cv2.medianBlur(mask, 5)
         return mask
 
+    def _find_marker(self, contours: List[np.ndarray]) -> np.ndarray:
+        """Find the reference marker using improved criteria"""
+        marker_candidates = []
+        for contour in contours:
+            # Approximate the contour
+            epsilon = 0.02 * cv2.arcLength(contour, True)
+            approx = cv2.approxPolyDP(contour, epsilon, True)
+
+            # Check if it's roughly rectangular (4 corners)
+            if len(approx) == 4:
+                # Calculate aspect ratio
+                x, y, w, h = cv2.boundingRect(contour)
+                aspect_ratio = float(w)/h
+                # Check if it's roughly square
+                if 0.8 <= aspect_ratio <= 1.2:
+                    marker_candidates.append(contour)
+
+        # Return the smallest valid marker candidate
+        if marker_candidates:
+            return min(marker_candidates, key=cv2.contourArea)
+        return None
+
     def _calculate_scale(self, marker_contour: np.ndarray) -> float:
-        """Calculate pixels per marker length"""
-        marker_pixels = cv2.arcLength(marker_contour, True)
-        return marker_pixels / 4  # Perimeter divided by 4 for square marker
+        """Calculate pixels per marker length using improved method"""
+        rect = cv2.minAreaRect(marker_contour)
+        # Use the average of width and height for more accurate measurement
+        marker_size = (rect[1][0] + rect[1][1]) / 2
+        return marker_size
 
     def _measure_pipe(self, contour: np.ndarray, pixels_per_mm: float) -> Tuple[float, float]:
-        """Measure the width and length of a pipe in millimeters and meters"""
-        # Find the minimum area rectangle that bounds the pipe
+        """Measure the width and length of a pipe with improved accuracy"""
+        # Use minimum area rectangle for more accurate measurements
         rect = cv2.minAreaRect(contour)
         width = min(rect[1][0], rect[1][1])  # Shorter side is the width
         length = max(rect[1][0], rect[1][1])  # Longer side is the length
