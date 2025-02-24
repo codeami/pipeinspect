@@ -43,16 +43,16 @@ def display_results(image: np.ndarray, results: Dict) -> str:
 
             # Draw measurement text
             text = f"{length}m ({width}mm)"
-            cv2.putText(output, text, (cx-30, cy), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.putText(output, text, (cx-60, cy), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 5.0, (255, 255, 255), 4)
 
     # Add legend
-    legend_y = 30
-    cv2.putText(output, "Pipe Categories:", (10, legend_y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    legend_y = 100
+    cv2.putText(output, "Pipe Categories:", (30, legend_y),
+                cv2.FONT_HERSHEY_SIMPLEX, 6.0, (255, 255, 255), 4)
     for i, (category, color) in enumerate(category_colors.items(), 1):
-        cv2.putText(output, f"- {category.title()}", (20, legend_y + i*20),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv2.putText(output, f"- {category.title()}", (60, legend_y + i*100),
+                   cv2.FONT_HERSHEY_SIMPLEX, 5.0, color, 4)
 
     # Print results grouped by category
     print("\nPipe Measurements by Category:")
