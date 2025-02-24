@@ -25,7 +25,7 @@ def display_results(image: np.ndarray, results: Dict) -> str:
     }
 
     # Draw pipe measurements
-    for pipe in results['pipe_measurements']:
+    for i, pipe in enumerate(results['pipe_measurements']):
         contour = pipe['contour']
         length = pipe['length_m']
         width = pipe['width_mm']
@@ -41,18 +41,50 @@ def display_results(image: np.ndarray, results: Dict) -> str:
             cx = int(M['m10'] / M['m00'])
             cy = int(M['m01'] / M['m00'])
 
-            # Draw measurement text
+            # Draw width line (blue)
+            rect = cv2.minAreaRect(contour)
+            box = cv2.boxPoints(rect)
+            box = np.int32(box)
+            width_p1 = tuple(box[0])
+            width_p2 = tuple(box[1])
+            cv2.line(output, width_p1, width_p2, (255, 0, 0), 3)  # Blue line
+
+            # Draw length line (pink)
+            length_p1 = tuple(box[1])
+            length_p2 = tuple(box[2])
+            cv2.line(output, length_p1, length_p2, (255, 0, 255), 3)  # Pink line
+
+            # Draw arrows
+            # White arrow for width
+            arrow_start = ((width_p1[0] + width_p2[0])//2, (width_p1[1] + width_p2[1])//2)
+            cv2.arrowedLine(output, arrow_start, 
+                          (arrow_start[0], arrow_start[1] - 50), 
+                          (255, 255, 255), 2, tipLength=0.5)  # White arrow
+
+            # Yellow arrow for length
+            arrow_start = ((length_p1[0] + length_p2[0])//2, (length_p1[1] + length_p2[1])//2)
+            cv2.arrowedLine(output, arrow_start,
+                          (arrow_start[0] + 50, arrow_start[1]), 
+                          (0, 255, 255), 2, tipLength=0.5)  # Yellow arrow
+
+            # Position measurements in columns
+            if i % 2 == 0:  # Left column
+                text_x = 50
+            else:  # Right column
+                text_x = output.shape[1] - 400
+            
+            text_y = 100 + (i // 2) * 100  # New row every two measurements
             text = f"{length}m ({width}mm)"
-            cv2.putText(output, text, (cx-30, cy), 
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+            cv2.putText(output, text, (text_x, text_y), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 5.0, (0, 255, 0), 4)  # Bright green
 
     # Add legend
-    legend_y = 30
-    cv2.putText(output, "Pipe Categories:", (10, legend_y),
-                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
+    legend_y = max(text_y + 100, 100)
+    cv2.putText(output, "Pipe Categories:", (30, legend_y),
+                cv2.FONT_HERSHEY_SIMPLEX, 6.0, (255, 255, 255), 4)
     for i, (category, color) in enumerate(category_colors.items(), 1):
-        cv2.putText(output, f"- {category.title()}", (20, legend_y + i*20),
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        cv2.putText(output, f"- {category.title()}", (60, legend_y + i*100),
+                   cv2.FONT_HERSHEY_SIMPLEX, 5.0, color, 4)
 
     # Print results grouped by category
     print("\nPipe Measurements by Category:")

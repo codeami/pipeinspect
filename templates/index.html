@@ -137,6 +137,16 @@
                 });
                 const result = await response.json();
                 showMessage(result.message, result.success);
+                if (result.success && result.test_image) {
+                    const img = document.createElement('img');
+                    img.src = result.test_image;
+                    img.style.maxWidth = '100%';
+                    img.style.marginTop = '20px';
+                    const existingImg = document.querySelector('#testMarkerImage');
+                    if (existingImg) existingImg.remove();
+                    img.id = 'testMarkerImage';
+                    document.getElementById('message').after(img);
+                }
             } catch (error) {
                 showMessage('Error testing marker: ' + error, false);
             }
@@ -150,14 +160,10 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append('image', fileInput.files[0]);
-
             showLoading(true);
             try {
                 const response = await fetch('/process', {
-                    method: 'POST',
-                    body: formData
+                    method: 'POST'
                 });
 
                 if (response.ok) {

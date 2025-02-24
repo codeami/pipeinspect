@@ -45,24 +45,29 @@ def test_marker():
         if marker is None:
             return jsonify({'success': False, 'message': 'Reference marker not found. Please ensure the marker is clearly visible.'})
 
-        return jsonify({'success': True, 'message': 'Reference marker detected successfully!'})
+        # Draw test results on image
+        test_image = image.copy()
+        cv2.drawContours(test_image, [marker], -1, (0, 255, 0), 2)
+        cv2.imwrite('static/test_marker.jpg', test_image)
+
+        return jsonify({
+            'success': True, 
+            'message': 'Reference marker detected successfully!',
+            'test_image': '/static/test_marker.jpg'
+        })
 
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error processing image: {str(e)}'})
 
 @app.route('/process', methods=['POST'])
 def process_image():
-    if 'image' not in request.files:
-        return 'No image uploaded', 400
-
-    file = request.files['image']
-    if file.filename == '':
-        return 'No selected file', 400
-
     try:
-        # Convert uploaded file to numpy array - using same method as test_marker
-        file_bytes = np.frombuffer(file.read(), np.uint8)
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        # Use the test marker image if it exists
+        test_marker_path = 'static/test_marker.jpg'
+        if not os.path.exists(test_marker_path):
+            return 'Please test marker detection first', 400
+            
+        image = cv2.imread(test_marker_path)
 
         if image is None:
             return 'Invalid image format', 400
@@ -106,4 +111,4 @@ def serve_static(filename):
     return send_from_directory('static', filename)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
