@@ -44,18 +44,26 @@ class PipeImageProcessor:
             if cv2.contourArea(contour) < 100:
                 continue
 
-            # Approximate contour shape
+            # Get convex hull for better shape analysis
+            hull = cv2.convexHull(contour)
+            hull_area = cv2.contourArea(hull)
+            contour_area = cv2.contourArea(contour)
+
+            # Calculate solidity (area ratio)
+            solidity = float(contour_area)/hull_area if hull_area > 0 else 0
+
+            # Approximate contour shape using Douglas-Peucker algorithm
             epsilon = 0.02 * cv2.arcLength(contour, True)
             approx = cv2.approxPolyDP(contour, epsilon, True)
 
-            # Filter based on shape complexity
-            if len(approx) > 4 and len(approx) < 15:  # Complex enough to be a pipe
+            # Filter based on shape complexity and solidity
+            if len(approx) > 4 and len(approx) < 15 and solidity > 0.7:  # Complex enough to be a pipe
                 filtered_contours.append(contour)
 
         if not filtered_contours:
             raise ValueError("No valid pipe contours detected")
 
-        # Find marker (now using contour properties for better detection)
+        # Find marker
         marker_contour = self._find_marker(filtered_contours)
         if marker_contour is None:
             raise ValueError("No reference marker found in the image")
@@ -72,11 +80,18 @@ class PipeImageProcessor:
             width, length = self._measure_pipe(contour, pixels_per_mm)
             category = self._categorize_width(width)
 
+            # Calculate additional shape metrics
+            hull = cv2.convexHull(contour)
+            hull_perimeter = cv2.arcLength(hull, True)
+            contour_perimeter = cv2.arcLength(contour, True)
+            shape_complexity = contour_perimeter / hull_perimeter
+
             pipe_measurements.append({
                 'contour': contour,
                 'width_mm': width,
                 'length_m': length,
-                'category': category
+                'category': category,
+                'shape_complexity': round(shape_complexity, 3)
             })
 
         # Sort measurements by width category
@@ -105,20 +120,30 @@ class PipeImageProcessor:
         return mask
 
     def _find_marker(self, contours: List[np.ndarray]) -> np.ndarray:
-        """Find the reference marker using improved criteria"""
+        """Find the reference marker using improved shape analysis"""
         marker_candidates = []
         for contour in contours:
+            # Calculate shape metrics
+            perimeter = cv2.arcLength(contour, True)
+            area = cv2.contourArea(contour)
+
+            if area < 100:  # Skip tiny contours
+                continue
+
             # Approximate the contour
-            epsilon = 0.02 * cv2.arcLength(contour, True)
+            epsilon = 0.02 * perimeter
             approx = cv2.approxPolyDP(contour, epsilon, True)
 
             # Check if it's roughly rectangular (4 corners)
             if len(approx) == 4:
-                # Calculate aspect ratio
+                # Calculate aspect ratio and extent
                 x, y, w, h = cv2.boundingRect(contour)
                 aspect_ratio = float(w)/h
-                # Check if it's roughly square
-                if 0.8 <= aspect_ratio <= 1.2:
+                rect_area = w * h
+                extent = float(area)/rect_area
+
+                # Check if it's roughly square and filled
+                if 0.8 <= aspect_ratio <= 1.2 and extent > 0.8:
                     marker_candidates.append(contour)
 
         # Return the smallest valid marker candidate
@@ -128,10 +153,15 @@ class PipeImageProcessor:
 
     def _calculate_scale(self, marker_contour: np.ndarray) -> float:
         """Calculate pixels per marker length using improved method"""
+        # Use multiple methods for robust measurement
         rect = cv2.minAreaRect(marker_contour)
-        # Use the average of width and height for more accurate measurement
-        marker_size = (rect[1][0] + rect[1][1]) / 2
-        return marker_size
+        rect_size = (rect[1][0] + rect[1][1]) / 2  # Average of width and height
+
+        perimeter = cv2.arcLength(marker_contour, True)
+        perimeter_size = perimeter / 4  # For square marker
+
+        # Return average of both measurements
+        return (rect_size + perimeter_size) / 2
 
     def _measure_pipe(self, contour: np.ndarray, pixels_per_mm: float) -> Tuple[float, float]:
         """Measure the width and length of a pipe with improved accuracy"""
