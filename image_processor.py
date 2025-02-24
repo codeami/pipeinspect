@@ -10,11 +10,11 @@ class PipeImageProcessor:
             ((0, 30, 30), (15, 255, 255)),  # Broader lower red range
             ((160, 30, 30), (180, 255, 255))  # Broader upper red range
         ]
-        # Width categories in millimeters
+        # Rectangular width categories in millimeters
         self.width_categories = {
-            'small': (25, 50),
-            'medium': (51, 75),
-            'large': (76, 100)
+            'small': (200, 400),
+            'medium': (401, 700),
+            'large': (701, 1500)
         }
 
     def process_image(self, image: np.ndarray) -> Dict:
@@ -171,17 +171,13 @@ class PipeImageProcessor:
         return (rect_size + perimeter_size) / 2
 
     def _measure_pipe(self, contour: np.ndarray, pixels_per_mm: float) -> Tuple[float, float]:
-        """Measure the width and length of a pipe with improved accuracy"""
-        # Use minimum area rectangle for more accurate measurements
+        """Measure the rectangular width of a pipe"""
         rect = cv2.minAreaRect(contour)
-        width = min(rect[1][0], rect[1][1])  # Shorter side is the width
-        length = max(rect[1][0], rect[1][1])  # Longer side is the length
-
-        # Convert measurements
+        width = min(rect[1][0], rect[1][1])  # Get rectangular width
         width_mm = width / pixels_per_mm
-        length_m = (length / pixels_per_mm) / 1000  # Convert mm to m
-
-        return round(width_mm, 1), round(length_m, 2)
+        
+        # Return width twice to maintain function signature, but only width is used
+        return round(width_mm, 1), 0
 
     def _categorize_width(self, width_mm: float) -> str:
         """Categorize pipe based on its width"""
