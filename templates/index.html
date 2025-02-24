@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pipe Measurement Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .upload-form { border: 2px dashed #ccc; padding: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Construction Site Pipe Measurement</h1>
+        <form action="/process" method="post" enctype="multipart/form-data" class="upload-form">
+            <p>Upload a construction site image with red pipes and a reference marker:</p>
+            <input type="file" name="image" accept="image/*" required>
+            <br><br>
+            <input type="submit" value="Process Image">
+        </form>
+    </div>
+</body>
+</html>
